@@ -1,0 +1,50 @@
+import math
+
+def find_min_n(A, B):
+    n = 0
+    remaining = A
+    gcd_val = math.gcd(remaining, B)
+    
+    while gcd_val != 1:
+        exponent_a = 0
+        while remaining % gcd_val == 0:
+            remaining = remaining // gcd_val
+            exponent_a += 1
+        
+        temp_b = B
+        exponent_b = 0
+        while temp_b % gcd_val == 0:
+            temp_b = temp_b // gcd_val
+            exponent_b += 1
+        
+        current_n = (exponent_a + exponent_b - 1) // exponent_b
+        if current_n > n:
+            n = current_n
+        
+        gcd_val = math.gcd(remaining, B)
+    
+    if remaining != 1:
+        return -1
+    
+    return n
+
+def main():
+    print("Программа для нахождения минимальной степени n, при которой B^n делится на A")
+    print("Автор: [Горбик Виктория Станиславовна]")
+    print("Номер группы: [020303]")
+    print()
+    
+    try:
+        A, B = map(int, input("Введите два натуральных числа A и B через пробел: ").split())
+        if A < 2 or B < 2 or A > 2*10**9 or B > 2*10**9:
+            print("Ошибка: числа должны быть в диапазоне 2 ≤ A, B ≤ 2×10⁹")
+            return
+        
+        result = find_min_n(A, B)
+        print(f"Результат: {result}")
+        
+    except ValueError:
+        print("Ошибка: введите два целых числа через пробел")
+
+if __name__ == "__main__":
+    main()
