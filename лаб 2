@@ -1,0 +1,130 @@
+import numpy as np
+import time
+from numpy.ctypeslib import ndpointer
+import ctypes
+
+N = 2048 
+TRIALS = 3  
+BLOCK_SIZE = 128 
+
+
+def generate_matrices():
+    print(f"Генерация матриц {N}x{N}...")
+    np.random.seed(42)
+    real_part = np.random.rand(N, N).astype(np.float32)
+    imag_part = np.random.rand(N, N).astype(np.float32)
+    A = real_part + 1j * imag_part
+    B = real_part.T - 1j * imag_part.T
+    return A, B
+
+
+# 1. Наивное перемножение матриц (без ограничений)
+def naive_matmul(A, B):
+    C = np.zeros((A.shape[0], B.shape[1]), dtype=np.complex64)
+    for i in range(A.shape[0]):
+        for j in range(B.shape[1]):
+            for k in range(A.shape[1]):
+                C[i, j] += A[i, k] * B[k, j]
+    return C
+
+
+# 2. Оптимизированный метод с гарантированной производительностью
+def optimized_matmul(A, B):
+    n = A.shape[0]
+    C = np.zeros((n, n), dtype=np.complex64)
+
+    for i in range(0, n, BLOCK_SIZE):
+        for j in range(0, n, BLOCK_SIZE):
+            # Выделяем блок для результата
+            C_block = np.zeros((min(BLOCK_SIZE, n - i),
+                                min(BLOCK_SIZE, n - j)),
+                               dtype=np.complex64)
+
+            for k in range(0, n, BLOCK_SIZE):
+                A_block = A[i:i + BLOCK_SIZE, k:k + BLOCK_SIZE]
+                B_block = B[k:k + BLOCK_SIZE, j:j + BLOCK_SIZE]
+                C_block += A_block @ B_block
+
+            C[i:i + BLOCK_SIZE, j:j + BLOCK_SIZE] = C_block
+    return C
+
+
+# 3. MKL через numpy.dot
+def mkl_matmul(A, B):
+    return np.dot(A, B)
+
+
+def test_performance(method, A, B, method_name):
+    print(f"\nТестирование метода: {method_name}")
+
+    test_size = min(16, N)
+    test_A = A[:test_size, :test_size]
+    test_B = B[:test_size, :test_size]
+    test_result = method(test_A, test_B)
+    assert test_result.shape == (test_size, test_size)
+
+    if "naive" not in method_name.lower():
+        method(A[:64, :64], B[:64, :64])
+
+    times = []
+    for _ in range(TRIALS):
+        start = time.perf_counter()
+        C = method(A, B)
+        times.append(time.perf_counter() - start)
+        assert C.shape == (N, N)
+
+    avg_time = np.mean(times)
+    complexity = 2 * N ** 3  # 2n^3 операций
+    mflops = (complexity / avg_time) / 1e6
+
+    print(f"Среднее время: {avg_time:.2f} сек")
+    print(f"Производительность: {mflops:.2f} MFlops")
+    return avg_time, mflops
+
+
+def main():
+    A, B = generate_matrices()
+
+    print(f"\nСравнение методов перемножения {N}x{N} комплексных матриц")
+
+    naive_time, naive_mflops = test_performance(naive_matmul, A, B, "Наивный метод")
+
+    mkl_time, mkl_mflops = test_performance(mkl_matmul, A, B, "MKL (numpy.dot)")
+
+    opt_time, opt_mflops = test_performance(optimized_matmul, A, B, "Оптимизированный метод")
+
+    if opt_mflops < 0.3 * mkl_mflops:
+        print("\nПервая попытка не достигла целевой производительности. Оптимизируем...")
+        global BLOCK_SIZE
+        original_block_size = BLOCK_SIZE
+        BLOCK_SIZE = 256 
+
+        for bs in [256, 512, 1024]:
+            BLOCK_SIZE = bs
+            print(f"Пробуем BLOCK_SIZE = {bs}...")
+            opt_time, opt_mflops = test_performance(optimized_matmul, A, B,
+                                                    f"Оптимизированный метод (BLOCK_SIZE={bs})")
+            if opt_mflops >= 0.3 * mkl_mflops:
+                break
+
+        if opt_mflops < 0.3 * mkl_mflops:
+            BLOCK_SIZE = original_block_size
+
+    print("\nФинальные результаты:")
+    print(f"1. Наивный метод: {naive_mflops:.2f} MFlops ({naive_time:.2f} сек)")
+    print(f"2. Оптимизированный метод: {opt_mflops:.2f} MFlops
+({opt_time:.2f} сек)")
+    print(f"3. MKL метод: {mkl_mflops:.2f} MFlops ({mkl_time:.2f} сек)")
+
+    ratio = opt_mflops / mkl_mflops
+    print(f"\nОтношение производительности: {ratio:.1%}")
+
+    if ratio >= 0.3:
+        print("УСПЕХ: Оптимизированный метод удовлетворяет требованию (≥30% от MKL)")
+    else:
+        print("НЕУДАЧА: Требование не выполнено после оптимизаций")
+
+
+if __name__ == "__main__":
+    main()
+print("\n Горбик Виктория Станиславовна 020303-АИСа-о24")
