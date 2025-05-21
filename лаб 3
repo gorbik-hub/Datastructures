@@ -1,0 +1,144 @@
+import time
+from collections import defaultdict
+
+def king_path_array(moves):
+    visited = [(0, 0)]  
+    x, y = 0, 0
+    
+    for move in moves:
+        if move == 'U':
+            y += 1
+        elif move == 'D':
+            y -= 1
+        elif move == 'L':
+            x -= 1
+        elif move == 'R':
+            x += 1
+        elif move == 'UL':
+            x -= 1
+            y += 1
+        elif move == 'UR':
+            x += 1
+            y += 1
+        elif move == 'DL':
+            x -= 1
+            y -= 1
+        elif move == 'DR':
+            x += 1
+            y -= 1
+        
+        for pos in visited:
+            if pos == (x, y):
+                return True
+        visited.append((x, y))
+    
+    return False
+
+class Node:
+    def __init__(self, pos):
+        self.pos = pos
+        self.next = None
+
+def king_path_linked_list(moves):
+    head = Node((0, 0))
+    current = head
+    x, y = 0, 0
+    
+    for move in moves:
+        if move == 'U':
+            y += 1
+        elif move == 'D':
+            y -= 1
+        elif move == 'L':
+            x -= 1
+        elif move == 'R':
+            x += 1
+        elif move == 'UL':
+            x -= 1
+            y += 1
+        elif move == 'UR':
+            x += 1
+            y += 1
+        elif move == 'DL':
+            x -= 1
+            y -= 1
+        elif move == 'DR':
+            x += 1
+            y -= 1
+        
+        node = head
+        while node:
+            if node.pos == (x, y):
+                return True
+            node = node.next
+        
+        new_node = Node((x, y))
+        current.next = new_node
+        current = new_node
+    
+    return False
+
+def king_path_dict(moves):
+    visited = defaultdict(bool)
+    x, y = 0, 0
+    visited[(x, y)] = True
+    
+    for move in moves:
+        if move == 'U':
+            y += 1
+        elif move == 'D':
+            y -= 1
+        elif move == 'L':
+            x -= 1
+        elif move == 'R':
+            x += 1
+        elif move == 'UL':
+            x -= 1
+            y += 1
+        elif move == 'UR':
+            x += 1
+            y += 1
+        elif move == 'DL':
+            x -= 1
+            y -= 1
+        elif move == 'DR':
+            x += 1
+            y -= 1
+        
+        if visited[(x, y)]:
+            return True
+        visited[(x, y)] = True
+    
+    return False
+
+def generate_moves(n):
+    import random
+    directions = ['U', 'D', 'L', 'R', 'UL', 'UR', 'DL', 'DR']
+    return [random.choice(directions) for _ in range(n)]
+
+def test_implementation(func, name, moves):
+    start_time = time.time()
+    result = func(moves)
+    elapsed = time.time() - start_time
+    print(f"{name}: {'Повтор' if result else 'Нет повторов'} | Время: {elapsed:.6f} сек")
+
+if __name__ == "__main__":
+    small_moves = ['U', 'R', 'D', 'L']  
+    medium_moves = generate_moves(1000)
+    large_moves = generate_moves(10000)
+    
+    print("=== Маленький тест (4 хода, есть повтор) ===")
+    test_implementation(king_path_array, "Массив", small_moves)
+    test_implementation(king_path_linked_list, "Связный список", small_moves)
+    test_implementation(king_path_dict, "Словарь", small_moves)
+    
+    print("\n=== Средний тест (1000 ходов) ===")
+    test_implementation(king_path_array, "Массив", medium_moves)
+    test_implementation(king_path_linked_list, "Связный список", medium_moves)
+    test_implementation(king_path_dict, "Словарь", medium_moves)
+    
+    print("\n=== Большой тест (10000 ходов) ===")
+    test_implementation(king_path_array, "Массив", large_moves)
+    test_implementation(king_path_linked_list, "Связный список", large_moves)
+    test_implementation(king_path_dict, "Словарь", large_moves)
+    print("Горбик Виктория Станиславовна 020303-АИС-о24")
